@@ -4,19 +4,6 @@
 * Read more at https://makecode.microbit.org/blocks/custom
 */
 
-// enum MyEnum {
-//     //% block="hardware_version"
-//     HardwareVersion,
-//     //% block="software_version"
-//     SoftwareVersion,
-//     //% block="manufacturers"
-//     Manufacturers,
-//     //% block="single_polling"
-//     SinglePolling,
-//     //% block="multiple_polling"
-//     MultiplePolling,
-// }
-
 /**
  * Custom blocks
  */
