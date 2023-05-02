@@ -92,5 +92,19 @@ namespace custom {
         bufr.setUint8(7, 0x0A);
         bufr.setUint8(8, 0x0D);
         serial.writeBuffer(bufr);
+        basic.showIcon(IconNames.SmallSquare, 60);
+        let ret = serial.readBuffer(24);
+        basic.showIcon(IconNames.Square, 60);
+        basic.clearScreen();
+        let ret_string = "";
+        for (let i = 0; i < ret.length; i++) {
+            let ch_num = ret.getNumber(NumberFormat.UInt8LE, i);
+            ret_string = ret_string + String.fromCharCode(ch_num / 16 > 9 ? ch_num / 16 + 55 : ch_num / 16 + 48) + String.fromCharCode(ch_num % 16 > 9 ? ch_num % 16 + 55 : ch_num % 16 + 48);
+        }
+        basic.showString(ret_string, 60);
+        // return ret_string;
+    }
+    //% block
+    export function SerialRead(): void {
     }
 }
