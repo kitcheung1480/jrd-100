@@ -9,7 +9,7 @@
  */
 //% weight=100 color=#0fbc11 icon=""
 namespace custom {
-    let cmd_list = [
+    let cmd_list: number[][] = [
         [ 0xBB, 0x00, 0x03, 0x00, 0x01, 0x00, 0x04, 0x7E ],                                             //0. Hardware version 
         [ 0xBB, 0x00, 0x03, 0x00, 0x01, 0x01, 0x05, 0x7E ],                                             //1. Software version 
         [ 0xBB, 0x00, 0x03, 0x00, 0x01, 0x02, 0x06, 0x7E ],                                             //2. manufacturers  
@@ -56,9 +56,9 @@ namespace custom {
         [ 0xBB, 0x00, 0xB0, 0x00, 0x01, 0xFF, 0xB0, 0x7E ],                                             //24. Set up transmitting continuous carrier 
         [ 0xBB, 0x00, 0xF1, 0x00, 0x00, 0xF1, 0x7E ],                                                   //25. Gets the receiving demodulator parameters 
         [ 0xBB, 0x00, 0xF0, 0x00, 0x04, 0x03, 0x06, 0x01, 0xB0, 0xAE, 0x7E ],                           //26. Set the receiving demodulator parameters 
-        [ 0xBB, 0x00, 0xF2, 0x00, 0x00, 0xF2, 0x7E ]                                                    //27. Test the RF input block signal 
+        [ 0xBB, 0x00, 0xF2, 0x00, 0x00, 0xF2, 0x7E ],                                                    //27. Test the RF input block signal 
         [ 0xBB, 0x00, 0xF3, 0x00, 0x00, 0xF3, 0x7E ],                                                   //28. Test the RSSI signal at the RF input 
-        [0x00],
+        [ 0x00 ],
         [ 0xBB, 0x00, 0x17, 0x00, 0x00, 0x17, 0x7E ],                                                   //30. Module hibernation 
         [ 0xBB, 0x00, 0x1D, 0x00, 0x01, 0x02, 0x20, 0x7E ],                                             //31. Idle hibernation time of module
         [ 0xBB, 0x00, 0x04, 0x00, 0x03, 0x01, 0x01, 0x03, 0x0C, 0x7E ],                                 //32. The IDLE mode 
@@ -72,39 +72,58 @@ namespace custom {
             0xFF, 0x01, 0x03, 0x00, 0x00, 0x01, 0x07, 0x00, 0xE8, 0x7E
         ]   //38.The BlockPermalock directive permanently locks blocks of a user's Block 
     ]
+    let strength: number = 0;
+    let UUID: string = ""
     /**
-     * TODO: describe your function here
-     * @param n describe parameter here, eg: 5
-     * @param s describe parameter here, eg: "Hello"
-     * @param e describe parameter here
+     * Send a command and follow by 0x0A and 0x0D
      */
     //% block
-    export function SinglePoll(): void {
+    export function sendCmd(cmd: number): void {
         // Add code here
-        let bufr = pins.createBuffer(9);
-        bufr.setUint8(0, 0xBB);
-        bufr.setUint8(1, 0x00);
-        bufr.setUint8(2, 0x22);
-        bufr.setUint8(3, 0x00);
-        bufr.setUint8(4, 0x00);
-        bufr.setUint8(5, 0x22);
-        bufr.setUint8(6, 0x7E);
-        bufr.setUint8(7, 0x0A);
-        bufr.setUint8(8, 0x0D);
+        let bufr: Buffer = pins.createBuffer(cmd_list[cmd].length + 2);
+        for (let idx = 0; idx < cmd_list[cmd].length; idx++) {
+            bufr.setUint8(idx, cmd_list[cmd][idx])
+        }
+        bufr.setUint8(cmd_list[cmd].length, 0x0A);
+        bufr.setUint8(cmd_list[cmd].length+1, 0x0D);
         serial.writeBuffer(bufr);
-        basic.showIcon(IconNames.SmallSquare, 60);
-        let ret = serial.readBuffer(24);
+        basic.showIcon(IconNames.SmallSquare, 100);
+    }
+    /**
+     * Send a single poll command to the JRD-100 and read 24 byte of data from it.
+     * 0xBB <- start byte
+     * 0x022200 ?
+     * 0x11 <- data length (17)
+     * 0xXXXX <- RRSI? (little-endian)
+     * 0x00 ?
+     * 14 bytes of data (ID?)
+     * 0xXXXX <- Checksum
+     */
+    //% block
+    export function singlePoll(): void {
+        serial.redirect(
+            SerialPin.P0,
+            SerialPin.P1,
+            BaudRate.BaudRate115200
+        )
+        serial.setRxBufferSize(32)
+        pause(2);
+        sendCmd(3);
+
+        let ret: Buffer = serial.readBuffer(24);
         basic.showIcon(IconNames.Square, 60);
         basic.clearScreen();
-        let ret_string = "";
-        for (let i = 0; i < ret.length; i++) {
-            let ch_num = ret.getNumber(NumberFormat.UInt8LE, i);
-            ret_string = ret_string + String.fromCharCode(ch_num / 16 > 9 ? ch_num / 16 + 55 : ch_num / 16 + 48) + String.fromCharCode(ch_num % 16 > 9 ? ch_num % 16 + 55 : ch_num % 16 + 48);
-        }
-        basic.showString(ret_string, 60);
-        // return ret_string;
+        UUID = ret.toHex().substr(16, 28);
+        strength = ret.getNumber(NumberFormat.UInt16LE, 5)
+        serial.redirectToUSB();
+        pause(2);
     }
     //% block
-    export function SerialRead(): void {
+    export function getUuid(): string {
+        return UUID;
+    }
+    //% block
+    export function getStrength(): number {
+        return strength;
     }
 }
