@@ -87,7 +87,6 @@ namespace custom {
         bufr.setUint8(cmd_list[cmd].length, 0x0A);
         bufr.setUint8(cmd_list[cmd].length+1, 0x0D);
         serial.writeBuffer(bufr);
-        basic.showIcon(IconNames.SmallSquare, 100);
     }
     /**
      * Send a single poll command to the JRD-100 and read 24 byte of data from it.
@@ -114,9 +113,49 @@ namespace custom {
         basic.showIcon(IconNames.Square, 60);
         basic.clearScreen();
         UUID = ret.toHex().substr(16, 28);
-        strength = ret.getNumber(NumberFormat.UInt16LE, 5)
+        strength = ret.getNumber(NumberFormat.Int16LE, 5)
         serial.redirectToUSB();
         pause(2);
+    }
+    //% block
+    export function multiPollStart(): void {
+        serial.redirect(
+            SerialPin.P0,
+            SerialPin.P1,
+            BaudRate.BaudRate115200
+        )
+        serial.setRxBufferSize(32)
+        pause(2);
+        sendCmd(4);
+        serial.redirectToUSB();
+    }
+    //% block
+    export function multiPollRead(): void {
+        serial.redirect(
+            SerialPin.P0,
+            SerialPin.P1,
+            BaudRate.BaudRate115200
+        )
+        serial.setRxBufferSize(32)
+        pause(2);
+        let ret: Buffer = serial.readBuffer(24);
+        // UUID = ret.slice(9, 10).toHex();
+        UUID = ret.toHex().substr(16, 28);
+        strength = ret.getNumber(NumberFormat.Int8LE, 5)
+        serial.redirectToUSB();
+        // return UUID;
+    }
+    //% block
+    export function multiPollEnd(): void {
+        serial.redirect(
+            SerialPin.P0,
+            SerialPin.P1,
+            BaudRate.BaudRate115200
+        )
+        serial.setRxBufferSize(32)
+        pause(2);
+        sendCmd(5);
+        serial.redirectToUSB();
     }
     //% block
     export function getUuid(): string {
