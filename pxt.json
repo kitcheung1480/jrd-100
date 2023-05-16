@@ -4,7 +4,8 @@
     "dependencies": {
         "core": "*",
         "radio": "*",
-        "microphone": "*"
+        "microphone": "*",
+        "pxt-wappsto": "github:wappsto/pxt-wappsto#v1.1.1"
     },
     "files": [
         "main.blocks",

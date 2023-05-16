@@ -80,12 +80,10 @@ namespace custom {
     //% block
     export function sendCmd(cmd: number): void {
         // Add code here
-        let bufr: Buffer = pins.createBuffer(cmd_list[cmd].length + 2);
+        let bufr: Buffer = pins.createBuffer(cmd_list[cmd].length);
         for (let idx = 0; idx < cmd_list[cmd].length; idx++) {
             bufr.setUint8(idx, cmd_list[cmd][idx])
         }
-        bufr.setUint8(cmd_list[cmd].length, 0x0A);
-        bufr.setUint8(cmd_list[cmd].length+1, 0x0D);
         serial.writeBuffer(bufr);
     }
     /**
@@ -106,16 +104,20 @@ namespace custom {
             BaudRate.BaudRate115200
         )
         serial.setRxBufferSize(32)
-        pause(2);
         sendCmd(3);
-
-        let ret: Buffer = serial.readBuffer(24);
-        basic.showIcon(IconNames.Square, 60);
-        basic.clearScreen();
-        UUID = ret.toHex().substr(16, 28);
-        strength = ret.getNumber(NumberFormat.Int16LE, 5)
+        let header: Buffer = serial.readBuffer(2);
+        let ret: Buffer = null;
+        if (header.getUint8(1) == 0x01) {
+            ret = serial.readBuffer(6);
+            strength = 0;
+            UUID = "null";
+        }
+        else if (header.getUint8(1) == 0x02) {
+            ret = serial.readBuffer(22);
+            strength = ret.getNumber(NumberFormat.Int8LE, 3)
+            UUID = ret.slice(8, 12).toHex();
+        }
         serial.redirectToUSB();
-        pause(2);
     }
     //% block
     export function multiPollStart(): void {
@@ -125,7 +127,6 @@ namespace custom {
             BaudRate.BaudRate115200
         )
         serial.setRxBufferSize(32)
-        pause(2);
         sendCmd(4);
         serial.redirectToUSB();
     }
@@ -137,13 +138,17 @@ namespace custom {
             BaudRate.BaudRate115200
         )
         serial.setRxBufferSize(32)
-        pause(2);
-        let ret: Buffer = serial.readBuffer(24);
-        // UUID = ret.slice(9, 10).toHex();
-        UUID = ret.toHex().substr(16, 28);
-        strength = ret.getNumber(NumberFormat.Int8LE, 5)
+        let header: Buffer = serial.readBuffer(2);
+        let ret: Buffer = null;
+        if (header.getUint8(1) == 0x01) {
+            ret = serial.readBuffer(6);
+        }
+        else if (header.getUint8(1) == 0x02) {
+            ret = serial.readBuffer(22);
+            strength = ret.getNumber(NumberFormat.Int8LE, 3)
+            UUID = ret.slice(8, 12).toHex();
+        }
         serial.redirectToUSB();
-        // return UUID;
     }
     //% block
     export function multiPollEnd(): void {
@@ -153,7 +158,6 @@ namespace custom {
             BaudRate.BaudRate115200
         )
         serial.setRxBufferSize(32)
-        pause(2);
         sendCmd(5);
         serial.redirectToUSB();
     }
